@@ -1,0 +1,63 @@
+{
+    "Comment": "hola vengo desde CLI",
+    "StartAt": "Customer",
+    "States": {
+      "Customer": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-east-1:289333746714:function:lambda-dev-customer",
+        "Parameters": {
+          "headers.$": "$.headers",
+          "body.$": "States.JsonToString($.body.customer)"
+        },
+        "ResultPath": "$.resultCustomer",
+        "Next": "CheckResultCustomer"
+      },
+      "CheckResultCustomer": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.resultCustomer.statusCode",
+            "NumericEquals": 201,
+            "Next": "Loans"
+          }
+        ],
+        "Default": "Finish"
+      },
+      
+      "Loans": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-east-1:289333746714:function:lambda-dev-loans",
+        "Parameters": {
+          "headers.$": "$.headers",
+          "body":{
+            "loans.$": "$.body.loans",
+            "customerDocument.$": "$.body.customer.document",
+            "customerIncome.$": "$.body.customer.income"
+          }
+        },
+        "ResultPath": "$.resultLoans",
+        "Next": "CheckResultLoans"
+      },
+      "CheckResultLoans": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Variable": "$.resultLoans.statusCode",
+            "NumericEquals": 201,
+            "Next": "FinishLoans"
+          }
+        ],
+        "Default": "FinishLoans"
+      },
+      "Finish": {
+        "Type": "Pass",
+        "OutputPath": "$.resultCustomer",
+        "End": true
+      },
+      "FinishLoans": {
+        "Type": "Pass",
+        "OutputPath": "$.resultLoans",
+        "End": true
+      }
+    }
+  }
